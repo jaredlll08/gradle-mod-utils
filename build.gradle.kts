@@ -33,4 +33,8 @@ publishing {
             from(components["java"])
         }
     }
+
+    repositories {
+        maven("file://${System.getenv("local_maven")}")
+    }
 }
