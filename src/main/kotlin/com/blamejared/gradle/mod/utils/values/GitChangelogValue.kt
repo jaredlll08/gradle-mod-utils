@@ -18,14 +18,26 @@ abstract class GitChangelogValue : ValueSource<String, GitChangelogValue.Paramet
     override fun obtain(): String? {
         val stdout = ByteArrayOutputStream()
         val gitHash = System.getenv("GIT_COMMIT") ?: "HEAD"
-        val gitPrevHash = System.getenv("GIT_PREVIOUS_SUCCESSFUL_COMMIT") ?: "HEAD~10"
+        val explicitPrevHash = System.getenv("GIT_PREVIOUS_SUCCESSFUL_COMMIT")
+
         val commitLink = "${parameters.repository.get()}/commit/"
-        val revRange = "$gitPrevHash...$gitHash"
+
         execOperations.exec {
             commandLine("git")
-            args("log", "--pretty=tformat:- [%s]($commitLink%H) - %aN ", revRange)
+            val baseArgs = mutableListOf("log", "--pretty=tformat:- [%s]($commitLink%H) - %aN")
+
+            if (explicitPrevHash != null) {
+                baseArgs.add("$explicitPrevHash...$gitHash")
+            } else {
+                baseArgs.add("-n")
+                baseArgs.add("10")
+                baseArgs.add(gitHash)
+            }
+
+            args(baseArgs)
             standardOutput = stdout
         }
+
         return stdout.toString().trim().take(1500)
     }
 }
